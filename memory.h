@@ -8,5 +8,5 @@ typedef struct {
 	UINT64 entries;
 } MemoryData;
 
-MemoryData *
-get_memory_data(EFI_SYSTEM_TABLE *system_table, MemoryData *memory_data, UINTN *mmap_key);
+MemoryData *get_memory_data(UINTN *mmap_key, EFI_HANDLE hnd);
+

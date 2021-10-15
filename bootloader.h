@@ -5,6 +5,6 @@
 
 typedef struct {
 	Framebuffer *framebuffer;
-	PsfFont *font;
+	Psf1_font *font;
 	MemoryData *memory;
 } BootloaderData;

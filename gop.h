@@ -15,5 +15,5 @@ typedef struct {
 	UINT8 bytes_per_pixel;
 } Framebuffer;
 
-Framebuffer* initialize_gop(Framebuffer *framebuffer);
+Framebuffer *get_framebuffer();
 

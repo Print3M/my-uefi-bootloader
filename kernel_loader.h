@@ -3,4 +3,4 @@
 
 #define PAGE_SZ 0x1000
 
-void *load_kernel_into_memory(EFI_SYSTEM_TABLE *system_table, EFI_FILE *kernel_file);
+void *load_kernel_into_memory(EFI_FILE *kernel_file);

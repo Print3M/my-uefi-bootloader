@@ -28,12 +28,15 @@ CHAR16 *efi_status_str(EFI_STATUS _status) {
 	return STATUSES[status];
 }
 
-void print_err(const CHAR16 *str, EFI_STATUS status) {
-	Print(L"[!] Error: %s (error: %s) \n\r", str, efi_status_str(status));
+void print_efi_err(const CHAR16 *str, EFI_STATUS status) {
+	Print(L"[!] Error: %s (EFI error: %s) \n\r", str, efi_status_str(status));
+}
+void print_err(const CHAR16 *str) {
+	Print(L"[!] Error: %s \n\r", str);
 }
 
-int memcmp(const void *aptr, const void *bptr, UINT64 n) {
-	const UINT8 *a = aptr, *b = bptr;
+int memcmp(const void *a_ptr, const void *b_ptr, UINT64 n) {
+	const UINT8 *a = a_ptr, *b = b_ptr;
 
 	for (UINT64 i = 0; i < n; i++) {
 		if (a[i] < b[i]) {
