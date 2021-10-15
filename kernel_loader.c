@@ -11,9 +11,7 @@ BOOLEAN verify_kernel_elf_header(Elf64_Ehdr *e_hdr) {
 		   e_hdr->e_version == EV_CURRENT;
 }
 
-void *load_kernel_into_memory(EFI_HANDLE image_handle,
-							  EFI_SYSTEM_TABLE *system_table,
-							  EFI_FILE *kernel_file) {
+void *load_kernel_into_memory(EFI_SYSTEM_TABLE *system_table, EFI_FILE *kernel_file) {
 	/*
 		Returns entry point to the kernel.
 	*/
@@ -82,7 +80,7 @@ void *load_kernel_into_memory(EFI_HANDLE image_handle,
 				kernel_file->Read(kernel_file, &segment_file_sz, (void *) segment_physical_addr);
 			if (status != EFI_SUCCESS) {
 				Print(L"[!] Error: Unsucessfully reading one of ELF's PT_LOAD segments \n\r");
-				return EFI_LOAD_ERROR;
+				return NULL;
 			}
 		}
 	}

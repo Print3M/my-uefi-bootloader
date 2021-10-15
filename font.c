@@ -1,21 +1,22 @@
 #include "font.h"
 #include "file.h"
+#include "utils.h"
 #include <efi.h>
 #include <efilib.h>
 #include <elf.h>
 
-PsfFont *load_psf_font(EFI_FILE *directory,
+PsfFont *load_psf_font(EFI_FILE *dir,
 					 CHAR16 *path,
 					 EFI_HANDLE image_handle,
 					 EFI_SYSTEM_TABLE *system_table) {
 
-	EFI_FILE *psf_file = load_file(directory, path, image_handle, system_table);
-	if (psf_file == NULL) {
-		Print(L"[!] Error: Couldn't find file with psf font \n\r");
-		return NULL;
+	// Load .psf font file
+	EFI_FILE *psf_file = load_file(dir, path, image_handle);
+	if(psf_file == NULL) {
+		print_err(L"Loading .psf font file failed", EFI_LOAD_ERROR);
 	}
 
-	// Get psf file's header
+	// Get .psf file's header
 	PsfHeader *psf_header;
 	system_table->BootServices->AllocatePool(
 		EfiLoaderData, sizeof(PsfHeader), (void **) &psf_header);

@@ -1,71 +1,84 @@
+#include "utils.h"
 #include <efi.h>
+#include <efibind.h>
 #include <efilib.h>
 #include <elf.h>
 
-EFI_FILE *load_file(EFI_FILE *directory,
-				   CHAR16 *file_name,
-				   EFI_HANDLE image_handle,
-				   EFI_SYSTEM_TABLE *system_table) {
-	// TODO: change to OpenProtocol() instead of HandleProtocol (see spec.
-	// HandlePrototocol chapter)
-
-	// Just as temp var for next operations
-	EFI_STATUS status = 0;
-
-	// IN image_handle
-	// IN  gEfiLoadedImageProtocolGuid - EFI_GUID struct with
-	// EFI_LOADED_IMAGE_PROTOCOL_GUID const value OUT void** to
-	// EFI_LOADED_IMAGE_PROTOCOL struct
-	EFI_LOADED_IMAGE_PROTOCOL *loaded_image;
-
-	status = system_table->BootServices->HandleProtocol(
-		image_handle, &gEfiLoadedImageProtocolGuid, (void **) &loaded_image);
-
+EFI_STATUS get_image(EFI_HANDLE image_handle, EFI_LOADED_IMAGE_PROTOCOL **loaded_image) {
+	EFI_STATUS status = ST->BootServices->OpenProtocol(image_handle,
+													   &gEfiLoadedImageProtocolGuid,
+													   (void **) loaded_image,
+													   image_handle,
+													   NULL,
+													   EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
 	if (status == EFI_UNSUPPORTED) {
-		Print(L"[!] Error: The device does not support the specified image "
-			  L"protocol \n\r");
+		print_err(L"The device doesn't support specified image protocol", status);
+	} else if (status != EFI_SUCCESS) {
+		print_err(L"Opening EFI Loaded Image Protocol failed", status);
+	}
+	return status;
+}
+
+EFI_STATUS get_root_fs(EFI_HANDLE image_handle,
+					   EFI_LOADED_IMAGE_PROTOCOL *loaded_image,
+					   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL **root_fs) {
+	EFI_STATUS status = ST->BootServices->OpenProtocol(loaded_image->DeviceHandle,
+													   &gEfiSimpleFileSystemProtocolGuid,
+													   (void **) root_fs,
+													   image_handle,
+													   NULL,
+													   EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+	if (status == EFI_UNSUPPORTED) {
+		print_err(L"The device does not support specified file system protocol", status);
+	} else if (status != EFI_SUCCESS) {
+		print_err(L"Opening EFI Simple File System failed", status);
+	}
+	return status;
+}
+
+EFI_STATUS get_root_dir(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *root_fs, EFI_FILE **dir) {
+	EFI_STATUS status = root_fs->OpenVolume(root_fs, dir);
+	if (status != EFI_SUCCESS) {
+		print_err(L"Accessing root directory failed", status);
+	}
+	print_err(L"Debug", status);
+	return status;
+}
+
+EFI_STATUS get_file(EFI_FILE *dir, CHAR16 *file_name, EFI_FILE **file) {
+	EFI_STATUS status = dir->Open(dir, file, file_name, EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY);
+	if (status != EFI_SUCCESS) {
+		print_err(L"Fail during opening file", status);
+	}
+	return status;
+}
+
+EFI_FILE *load_file(EFI_FILE *dir, CHAR16 *file_name, EFI_HANDLE image_handle) {
+
+	// Get loaded image (by image_handler)
+	EFI_LOADED_IMAGE_PROTOCOL *loaded_image = NULL;
+	if (get_image(image_handle, &loaded_image) != EFI_SUCCESS) {
 		return NULL;
 	}
 
-	// IN DeviceHandle
-	// IN gEfiSimpleFileSystemProtocolGuid - EFI_GUID struct with
-	// EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID const value OUT void ** to
-	// EFI_SIMPLE_FILE_SYSTEM_PROTOCOL struct
-	EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *file_system = NULL;
-
-	status = system_table->BootServices->HandleProtocol(
-		loaded_image->DeviceHandle, &gEfiSimpleFileSystemProtocolGuid, (void **) &file_system);
-	if (status == EFI_UNSUPPORTED) {
-		Print(L"[!] Error: The device does not support the specified file "
-			  L"system protocol \n\r");
+	// Get file system
+	EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *root_fs = NULL;
+	if (get_root_fs(image_handle, loaded_image, &root_fs) != EFI_SUCCESS) {
 		return NULL;
 	}
 
-	// TODO: What if not NULL??
-	if (directory == NULL) {
-		// IN FileSystem struct
-		// OUT Directory* - returns root directory
-		status = file_system->OpenVolume(file_system, &directory);
-		if (status != EFI_SUCCESS) {
-			Print(L"[!] Error: code=%d; accessing root directory "
-				  L"cannot be performed \n\r",
-				  status);
+	// If directory not specified, get root directory of volume
+	if (dir == NULL) {
+		if (get_root_dir(root_fs, &dir) != EFI_SUCCESS) {
 			return NULL;
 		}
 	}
 
-	// IN Directory* - current directory
-	// OUT LoadedFile** - returned file handle
-	// IN FileName* - file name to open
-	// IN EFI_FILE_MODE_READ - open mode
-	// IN EFI_FILE_READ_ONLY - file attribute
-	EFI_FILE *loaded_file = NULL;
-	status =
-		directory->Open(directory, &loaded_file, file_name, EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY);
-	if (status != EFI_SUCCESS || loaded_file == NULL) {
-		Print(L"[!] Error: Something went wrong during opening directory \n\r");
+	// Open file
+	EFI_FILE *file = NULL;
+	if (get_file(dir, file_name, &file) != EFI_SUCCESS) {
 		return NULL;
 	}
 
-	return loaded_file;
+	return file;
 }

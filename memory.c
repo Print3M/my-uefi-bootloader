@@ -13,11 +13,11 @@ get_memory_data(EFI_SYSTEM_TABLE *system_table, MemoryData *memory_data, UINTN *
 
 	// Get required size
 	system_table->BootServices->GetMemoryMap(
-		&mmap_sz, mmap, &mmap_key, &descriptor_sz, &descriptor_version);
+		&mmap_sz, mmap, mmap_key, &descriptor_sz, &descriptor_version);
 	// Allocate memory map and recive it
 	system_table->BootServices->AllocatePool(EfiLoaderData, mmap_sz, (void **) &mmap);
 	status = system_table->BootServices->GetMemoryMap(
-		&mmap_sz, mmap, &mmap_key, &descriptor_sz, &descriptor_version);
+		&mmap_sz, mmap, mmap_key, &descriptor_sz, &descriptor_version);
 	if (status != EFI_SUCCESS) {
 		return NULL;
 	}

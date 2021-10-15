@@ -1,5 +1,6 @@
 #include "gop.h"
 #include <efi.h>
+#include <efilib.h>
 
 Framebuffer* initialize_gop(Framebuffer *framebuffer) {
 	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop = NULL;
