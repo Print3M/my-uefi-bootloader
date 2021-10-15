@@ -1,7 +1,10 @@
-#include "memory.h"
+#include "kernel_starter.h"
+#include "bootloader.h"
 #include "utils.h"
 #include <efi.h>
 #include <efilib.h>
+
+typedef void __attribute__((sysv_abi)) (*kernel)(BootloaderData *);
 
 EFI_STATUS
 get_memory_map(UINTN *mmap_sz,
@@ -27,17 +30,19 @@ get_memory_map(UINTN *mmap_sz,
 	if (status != EFI_SUCCESS) {
 		print_efi_err(L"GetMemoryMap() failed", status);
 	}
-	Print(L"2-Mmap_key=%d \n\r", *mmap_key);
+
 	return status;
 }
 
-MemoryData *get_memory_data(UINTN *mmap_key, EFI_HANDLE hnd) {
+MemoryData *get_memory_data(UINTN *mmap_key) {
 	/*
 		Get memory map and related info.
 	*/
+	EFI_STATUS status = EFI_SUCCESS;
+
 	// Allocate memory_data struct
 	MemoryData *memory_data = NULL;
-	EFI_STATUS status = BS->AllocatePool(EfiLoaderData, sizeof(MemoryData), (void **) &memory_data);
+	status = BS->AllocatePool(EfiLoaderData, sizeof(MemoryData), (void **) &memory_data);
 	if (status != EFI_SUCCESS) {
 		print_efi_err(L"Allocating memory for memory data struct failed", status);
 	}
@@ -49,12 +54,45 @@ MemoryData *get_memory_data(UINTN *mmap_key, EFI_HANDLE hnd) {
 		return NULL;
 	}
 
-	status = BS->ExitBootServices(hnd, mmap_key);
-
 	memory_data->descriptor_sz = descriptor_sz;
 	memory_data->map_sz = mmap_sz;
 	memory_data->memory_map = mmap;
 	memory_data->entries = mmap_sz / descriptor_sz;
 
 	return memory_data;
+}
+
+void start_kernel(EFI_HANDLE image_handle,
+				  Framebuffer *framebuffer,
+				  Psf1_font *psf_font,
+				  void *kernel_addr) {
+	/*
+		Should be last function in bootloader.
+	*/
+	UINTN mmap_key = 0;
+	MemoryData *memory_data = get_memory_data(&mmap_key);
+	if (memory_data == NULL) {
+		print_err(L"Memory data gathering error");
+		return;
+	}
+
+	// Exit boot services immediately after memory map gathering
+	EFI_STATUS status = BS->ExitBootServices(image_handle, mmap_key);
+	if (status != EFI_SUCCESS) {
+		print_efi_err(L"ExitBootServices() failed", status);
+		return;
+	}
+
+	// !!!
+	// NOTE: Now you are not able to call EFI functions!
+	// !!!
+
+	BootloaderData bootloader_data = {
+		.framebuffer = framebuffer,
+		.font = psf_font,
+		.memory = memory_data,
+	};
+
+	// Jump to kernel function
+	((kernel) kernel_addr)(&bootloader_data);
 }

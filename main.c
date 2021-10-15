@@ -3,7 +3,7 @@
 #include "font.h"
 #include "gop.h"
 #include "kernel_loader.h"
-#include "memory.h"
+#include "kernel_starter.h"
 #include "utils.h"
 #include <efi.h>
 #include <efilib.h>
@@ -43,38 +43,16 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
 	}
 	Print(L"[+] Framebuffer initialized successfully \n\r");
 
-	UINTN mmap_key = 0;
-	MemoryData *memory_data = get_memory_data(&mmap_key, image_handle);
-	if (memory_data == NULL) {
-		print_err(L"Memory data gathering error");
-		return EFI_LOAD_ERROR;
-	}
-	Print(L"[+] Memory map gathered successfully \n\r");
-
-	Print(L"3-Mmap_key=%d \n\r", mmap_key);
-
-	// Leave EFI features and jump to kernel
-	EFI_STATUS status = BS->ExitBootServices(image_handle, mmap_key);
-	if (status != EFI_SUCCESS) {
-		print_efi_err(L"ExitBootServices() failed", status);
-		return EFI_LOAD_ERROR;
-	}
-
-	BootloaderData bootloader_data = {
-		.framebuffer = framebuffer,
-		.font = psf_font,
-		.memory = memory_data,
-	};
+	Print(L"[*] Starting kernel... \n\r");
+	start_kernel(image_handle, framebuffer, psf_font, kernel_addr);
 
 	// TODO: kernel info:
-	// In addition, the UEFI OS loader can treat all memory in the map marked as EfiBootServicesCode and EfiBootServicesData as available free memory. 
-
-	// TODO: better way and understand (can we leave that e_header.e_entry? Maybe kernel_addr)
-	void (*kernel_main)(BootloaderData *) =
-		((__attribute__((sysv_abi)) void (*)(BootloaderData *)) kernel_addr);
-
-	Print(L"[*] Starting kernel...");
-	// kernel_main(&bootloader_data);
+	// In addition, the UEFI OS loader can treat all memory in the map marked as EfiBootServicesCode
+	// and EfiBootServicesData as available free memory.
+	// TODO: Thanks to writing the bootloader from scratch 
+	// I probably fixed the bug that caused me to have to add a weird offset to 
+	// display the glyphs vertically so now the kernel displays weird stuff. 
+	// Just restore the correct offset and it will be fine
 
 	return EFI_SUCCESS;
 }
