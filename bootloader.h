@@ -7,4 +7,5 @@ typedef struct {
 	Framebuffer *framebuffer;
 	Psf1_font *font;
 	MemoryData *memory;
+	void *acpi_rsdp;
 } BootloaderData;

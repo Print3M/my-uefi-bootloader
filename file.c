@@ -5,12 +5,12 @@
 #include <elf.h>
 
 EFI_STATUS get_image(EFI_HANDLE image_handle, EFI_LOADED_IMAGE_PROTOCOL **loaded_image) {
-	EFI_STATUS status = ST->BootServices->OpenProtocol(image_handle,
-													   &gEfiLoadedImageProtocolGuid,
-													   (void **) loaded_image,
-													   image_handle,
-													   NULL,
-													   EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+	EFI_STATUS status = BS->OpenProtocol(image_handle,
+										 &gEfiLoadedImageProtocolGuid,
+										 (void **) loaded_image,
+										 image_handle,
+										 NULL,
+										 EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
 	if (status == EFI_UNSUPPORTED) {
 		print_efi_err(L"The device doesn't support specified image protocol", status);
 	} else if (status != EFI_SUCCESS) {
@@ -23,11 +23,11 @@ EFI_STATUS get_root_fs(EFI_HANDLE image_handle,
 					   EFI_LOADED_IMAGE_PROTOCOL *loaded_image,
 					   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL **root_fs) {
 	EFI_STATUS status = BS->OpenProtocol(loaded_image->DeviceHandle,
-													   &gEfiSimpleFileSystemProtocolGuid,
-													   (void **) root_fs,
-													   image_handle,
-													   NULL,
-													   EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+										 &gEfiSimpleFileSystemProtocolGuid,
+										 (void **) root_fs,
+										 image_handle,
+										 NULL,
+										 EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
 	if (status == EFI_UNSUPPORTED) {
 		print_efi_err(L"The device does not support specified file system protocol", status);
 	} else if (status != EFI_SUCCESS) {
@@ -64,7 +64,7 @@ EFI_STATUS get_file_info(EFI_FILE *file, EFI_FILE_INFO **file_info) {
 	}
 
 	// Allocate memory for file info
-	status = ST->BootServices->AllocatePool(EfiLoaderData, file_size, (void **) file_info);
+	status = BS->AllocatePool(EfiLoaderData, file_size, (void **) file_info);
 	if (status != EFI_SUCCESS) {
 		print_efi_err(L"Memory allocation failed", status);
 		return status;

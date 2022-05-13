@@ -37,6 +37,7 @@ get_memory_map(UINTN *mmap_sz,
 MemoryData *get_memory_data(UINTN *mmap_key) {
 	/*
 		Get memory map and related info.
+		Should be last function in bootloader before BS->ExitBootServices()
 	*/
 	EFI_STATUS status = EFI_SUCCESS;
 
@@ -62,17 +63,33 @@ MemoryData *get_memory_data(UINTN *mmap_key) {
 	return memory_data;
 }
 
+void *allocate_memory_for_kernel_stack(void **kernel_stack) {
+	EFI_STATUS status = BS->AllocatePool(EfiLoaderData, KERNEL_STACK_SIZE, kernel_stack);
+	if (status != EFI_SUCCESS) {
+		print_efi_err(L"Memory allocation for kernel stack failed", status);
+		return NULL;
+	}
+	return status;
+}
+
 void start_kernel(EFI_HANDLE image_handle,
 				  Framebuffer *framebuffer,
 				  Psf1_font *psf_font,
-				  void *kernel_addr) {
-	/*
-		Should be last function in bootloader.
-	*/
+				  void *kernel_addr,
+				  void *acpi_rsdp) {
+
+		// TODO: Allocate memory for stack purpose (maybe custom memory)
+		void *kernel_stack = NULL;
+	allocate_memory_for_kernel_stack(&kernel_stack);
+	if (kernel_stack == NULL) {
+		print_err(L"Kernel stack allocation failed");
+		return;
+	}
+
 	UINTN mmap_key = 0;
 	MemoryData *memory_data = get_memory_data(&mmap_key);
 	if (memory_data == NULL) {
-		print_err(L"Memory data gathering error");
+		print_err(L"Memory data gathering failed");
 		return;
 	}
 
@@ -91,8 +108,10 @@ void start_kernel(EFI_HANDLE image_handle,
 		.framebuffer = framebuffer,
 		.font = psf_font,
 		.memory = memory_data,
+		.acpi_rsdp = acpi_rsdp
 	};
 
+	// TODO: Set ESP to new stack allocation
 	// Jump to kernel function
 	((kernel) kernel_addr)(&bootloader_data);
 }

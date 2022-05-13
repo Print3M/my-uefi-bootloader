@@ -1,3 +1,4 @@
+#include "acpi.h"
 #include "bootloader.h"
 #include "file.h"
 #include "font.h"
@@ -8,6 +9,7 @@
 #include <efi.h>
 #include <efilib.h>
 #include <elf.h>
+
 
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
 	InitializeLib(image_handle, system_table);
@@ -43,16 +45,16 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
 	}
 	Print(L"[+] Framebuffer initialized successfully \n\r");
 
-	Print(L"[*] Starting kernel... \n\r");
-	start_kernel(image_handle, framebuffer, psf_font, kernel_addr);
+	void *acpi_rsdp = get_rsdp();
+	if (acpi_rsdp == NULL) {
+		print_err(L"Obtaining RSDP of ACPI failed");
+		return EFI_LOAD_ERROR;
+	}
+	Print(L"[+] RSDP of ACPI obtained successfully \n\r");
 
-	// TODO: kernel info:
-	// In addition, the UEFI OS loader can treat all memory in the map marked as EfiBootServicesCode
-	// and EfiBootServicesData as available free memory.
-	// TODO: Thanks to writing the bootloader from scratch 
-	// I probably fixed the bug that caused me to have to add a weird offset to 
-	// display the glyphs vertically so now the kernel displays weird stuff. 
-	// Just restore the correct offset and it will be fine
+
+	Print(L"[*] Starting kernel... \n\r");
+	start_kernel(image_handle, framebuffer, psf_font, kernel_addr, acpi_rsdp);
 
 	return EFI_SUCCESS;
 }

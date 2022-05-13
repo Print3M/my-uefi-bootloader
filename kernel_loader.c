@@ -34,7 +34,7 @@ EFI_STATUS get_elf_p_hdrs(EFI_FILE *file, Elf64_Ehdr *e_hdr, Elf64_Phdr **p_hdrs
 	EFI_STATUS status = EFI_SUCCESS;
 	UINTN all_p_hdrs_sz = e_hdr->e_phentsize * e_hdr->e_phnum; // Size of all program headers
 
-	status = ST->BootServices->AllocatePool(EfiLoaderData, all_p_hdrs_sz, (void **) p_hdrs);
+	status = BS->AllocatePool(EfiLoaderData, all_p_hdrs_sz, (void **) p_hdrs);
 	if (status != EFI_SUCCESS) {
 		print_efi_err(L"Allocating memory for ELF p_hdrs failed", status);
 		return status;
@@ -63,8 +63,7 @@ EFI_STATUS load_elf_segment_by_p_hdr(EFI_FILE *file, Elf64_Phdr *p_hdr) {
 	UINT16 num_of_pages = (p_hdr->p_filesz / PAGE_SZ) + 1;
 	Elf64_Addr segment_paddr = p_hdr->p_paddr;
 
-	status = ST->BootServices->AllocatePages(
-		AllocateAddress, EfiLoaderData, num_of_pages, &segment_paddr);
+	status = BS->AllocatePages(AllocateAddress, EfiLoaderData, num_of_pages, &segment_paddr);
 	if (status != EFI_SUCCESS) {
 		print_efi_err(L"Memory allocation for ELF segment failed", status);
 		return status;
@@ -123,7 +122,7 @@ void *load_kernel_into_memory(EFI_FILE *kernel_file) {
 		}
 
 		if (p_hdr->p_type == PT_LOAD) {
-			if(load_elf_segment_by_p_hdr(kernel_file, p_hdr) != EFI_SUCCESS) {
+			if (load_elf_segment_by_p_hdr(kernel_file, p_hdr) != EFI_SUCCESS) {
 				return NULL;
 			}
 		}
