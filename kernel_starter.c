@@ -78,13 +78,15 @@ void start_kernel(EFI_HANDLE image_handle,
 				  void *kernel_addr,
 				  void *acpi_rsdp) {
 
-		// TODO: Allocate memory for stack purpose (maybe custom memory)
-		void *kernel_stack = NULL;
+	// TODO: Allocate memory for stack purpose (maybe custom memory)
+	void *kernel_stack = NULL;
 	allocate_memory_for_kernel_stack(&kernel_stack);
 	if (kernel_stack == NULL) {
 		print_err(L"Kernel stack allocation failed");
 		return;
 	}
+
+	Print(L"Addr: 0x%X \n", framebuffer);
 
 	UINTN mmap_key = 0;
 	MemoryData *memory_data = get_memory_data(&mmap_key);
@@ -92,6 +94,7 @@ void start_kernel(EFI_HANDLE image_handle,
 		print_err(L"Memory data gathering failed");
 		return;
 	}
+
 
 	// Exit boot services immediately after memory map gathering
 	EFI_STATUS status = BS->ExitBootServices(image_handle, mmap_key);
@@ -104,12 +107,10 @@ void start_kernel(EFI_HANDLE image_handle,
 	// NOTE: Now you are not able to call EFI functions!
 	// !!!
 
-	BootloaderData bootloader_data = {
-		.framebuffer = framebuffer,
-		.font = psf_font,
-		.memory = memory_data,
-		.acpi_rsdp = acpi_rsdp
-	};
+	BootloaderData bootloader_data = {.framebuffer = framebuffer,
+									  .font = psf_font,
+									  .memory = memory_data,
+									  .acpi_rsdp = acpi_rsdp};
 
 	// TODO: Set ESP to new stack allocation
 	// Jump to kernel function

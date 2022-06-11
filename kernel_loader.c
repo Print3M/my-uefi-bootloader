@@ -88,11 +88,6 @@ void *load_kernel_into_memory(EFI_FILE *kernel_file) {
 	/*
 		Returns entry point to the kernel.
 	*/
-	// Is this neccessery?! XD
-	// EFI_FILE_INFO *kernel_file_info = NULL;
-	// if (get_file_info(kernel_file, &kernel_file_info) != EFI_SUCCESS) {
-	// 	return NULL;
-	// }
 
 	// Read ELF file header
 	Elf64_Ehdr e_hdr;
